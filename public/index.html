@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ICP Document Reviewer</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.1);
+    --border-med: rgba(0,0,0,0.18);
+    --text: #111;
+    --text-muted: #666;
+    --text-faint: #999;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --green: #3B6D11;
+    --green-light: #EAF3DE;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --amber: #854F0B;
+    --amber-light: #FAEEDA;
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; min-height: 100vh; }
+  .page { max-width: 780px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 2rem; }
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+  .section-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
+  .icp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .icp-tile { border: 1.5px solid var(--border); border-radius: var(--radius); padding: 12px 14px; cursor: pointer; transition: all 0.14s; background: var(--surface); }
+  .icp-tile:hover { border-color: var(--border-med); background: #fafaf8; }
+  .icp-tile.active { border-color: var(--blue); background: var(--blue-light); }
+  .icp-tile .name { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+  .icp-tile.active .name { color: #0C447C; }
+  .icp-tile .desc { font-size: 12px; color: var(--text-muted); }
+  .icp-tile.active .desc { color: var(--blue); }
+  .drop-zone { border: 1.5px dashed var(--border-med); border-radius: var(--radius-lg); padding: 2.5rem; text-align: center; cursor: pointer; transition: all 0.14s; background: #fafaf8; }
+  .drop-zone:hover, .drop-zone.over { border-color: var(--blue); background: var(--blue-light); }
+  .drop-zone .icon { font-size: 32px; color: var(--text-muted); margin-bottom: 8px; }
+  .drop-zone .main { font-size: 14px; color: var(--text-muted); }
+  .drop-zone .hint { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+  .file-pill { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f0f0ed; border-radius: var(--radius); }
+  .file-pill .fname { font-size: 13px; font-weight: 500; flex: 1; }
+  .file-pill .rm { cursor: pointer; color: var(--text-muted); font-size: 18px; line-height: 1; }
+  .file-pill .rm:hover { color: var(--red); }
+  textarea, input[type=text] { width: 100%; padding: 10px 14px; border: 0.5px solid var(--border-med); border-radius: var(--radius); font-size: 14px; font-family: inherit; background: var(--surface); color: var(--text); resize: vertical; min-height: 70px; outline: none; transition: border-color 0.14s; }
+  textarea:focus, input[type=text]:focus { border-color: var(--blue); }
+  .btn { width: 100%; padding: 13px; border-radius: var(--radius); border: none; background: #111; color: #fff; font-size: 15px; font-weight: 500; cursor: pointer; transition: opacity 0.14s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.38; cursor: not-allowed; }
+  .status { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--blue-light); border-radius: var(--radius); font-size: 13px; color: var(--blue); margin-top: 1rem; }
+  .spinner { width: 16px; height: 16px; border: 2px solid #B5D4F4; border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error { padding: 12px 14px; background: var(--red-light); border-radius: var(--radius); font-size: 13px; color: var(--red); margin-top: 1rem; }
+  .results { margin-top: 1.5rem; }
+  .verdict-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+  .score-big { font-size: 28px; font-weight: 600; }
+  .score-big span { font-size: 15px; font-weight: 400; color: var(--text-muted); }
+  .badge { display: inline-block; padding: 3px 11px; border-radius: 99px; font-size: 12px; font-weight: 500; margin-left: 8px; vertical-align: middle; }
+  .badge-g { background: var(--green-light); color: var(--green); }
+  .badge-a { background: var(--amber-light); color: var(--amber); }
+  .badge-r { background: var(--red-light); color: var(--red); }
+  .verdict-text { font-size: 14px; color: var(--text-muted); font-style: italic; margin-top: 8px; }
+  .scores-grid { display: grid; gap: 10px; margin-bottom: 1.25rem; }
+  .score-row { display: flex; align-items: center; gap: 12px; }
+  .score-lbl { font-size: 13px; color: var(--text-muted); min-width: 150px; }
+  .bar-bg { flex: 1; height: 6px; background: #eeecea; border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+  .score-num { font-size: 13px; font-weight: 500; min-width: 32px; text-align: right; }
+  .section-head { font-size: 13px; font-weight: 600; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 0.5px solid var(--border); }
+  .item-r { padding: 10px 14px; border-left: 2.5px solid #E24B4A; background: var(--red-light); border-radius: 0 var(--radius) var(--radius) 0; margin-bottom: 8px; font-size: 13px; color: #3d0f0f; line-height: 1.55; }
+  .item-g { padding: 10px 14px; border-left: 2.5px solid #639922; background: var(--green-light); border-radius: 0 var(--radius) var(--radius) 0; margin-bottom: 8px; font-size: 13px; color: #173404; line-height: 1.55; }
+  .item-b { padding: 10px 14px; border-left: 2.5px solid var(--blue); background: var(--blue-light); border-radius: 0 var(--radius) var(--radius) 0; margin-bottom: 8px; font-size: 13px; color: #042C53; line-height: 1.55; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 1rem; }
+  .summary-box { padding: 14px 16px; border-radius: var(--radius); font-size: 13px; line-height: 1.55; }
+  .summary-box .lbl { font-weight: 600; margin-bottom: 5px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .divider { height: 0.5px; background: var(--border); margin: 1.25rem 0; }
+  input[type="file"] { display: none; }
+  #customBlock { display: none; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>ICP Document Reviewer</h1>
+  <p class="subtitle">Upload a doc, pick an ICP — get devil's advocate critique, improvement suggestions, and visual feedback.</p>
+
+  <div class="card">
+    <div class="section-label">1 — Select ICP Profile</div>
+    <div class="icp-grid" id="icpGrid"></div>
+    <div id="customBlock">
+      <div class="section-label" style="margin-top:12px;">Describe your ICP</div>
+      <textarea id="customICPText" rows="3" placeholder="Company size, role, pain points, evaluation criteria, key concerns…"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">2 — Upload Document</div>
+    <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.webp"/>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon"><i class="ti ti-cloud-upload" aria-hidden="true"></i></div>
+      <div class="main">Click to upload or drag & drop</div>
+      <div class="hint">PDF, Word (.docx), plain text, or images (PNG/JPG) — up to 20 MB</div>
+    </div>
+    <div id="filePill" style="display:none;" class="file-pill">
+      <i class="ti ti-file-text" style="font-size:18px;color:var(--blue);" aria-hidden="true"></i>
+      <span class="fname" id="fileName"></span>
+      <span class="rm" onclick="removeFile()">×</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">3 — Extra Context (optional)</div>
+    <textarea rows="2" id="ctxInput" placeholder="Funnel stage, persona, campaign goal, intended audience…"></textarea>
+  </div>
+
+  <button class="btn" id="analyzeBtn" disabled onclick="runAnalysis()">Analyze document →</button>
+
+  <div id="statusBar" style="display:none;" class="status">
+    <div class="spinner"></div>
+    <span id="statusText">Analyzing…</span>
+  </div>
+  <div id="errorBar" style="display:none;" class="error" id="errorBar"></div>
+
+  <div id="results" class="results"></div>
+</div>
+
+<script>
+const ICPS = [
+  { id:'enterprise_saas', name:'Enterprise SaaS', desc:'1000+ employees, multi-stakeholder' },
+  { id:'smb', name:'SMB / Startup', desc:'10–200 employees, founder-led' },
+  { id:'developer', name:'Developer / Technical', desc:'Engineers, CTOs, technical evaluators' },
+  { id:'healthcare', name:'Healthcare / MedTech', desc:'Hospitals, clinics, regulated orgs' },
+  { id:'ecommerce', name:'E-commerce / Retail', desc:'Online retailers, D2C brands' },
+  { id:'custom', name:'Custom ICP', desc:'Define your own profile' },
+];
+
+let selectedICP = null, uploadedFile = null;
+
+function renderICPs() {
+  document.getElementById('icpGrid').innerHTML = ICPS.map(i =>
+    `<div class="icp-tile ${selectedICP===i.id?'active':''}" onclick="pickICP('${i.id}')">
+      <div class="name">${i.name}</div>
+      <div class="desc">${i.desc}</div>
+    </div>`
+  ).join('');
+  document.getElementById('customBlock').style.display = selectedICP==='custom' ? 'block' : 'none';
+}
+
+function pickICP(id) { selectedICP = id; renderICPs(); checkReady(); }
+function checkReady() { document.getElementById('analyzeBtn').disabled = !(selectedICP && uploadedFile); }
+
+const drop = document.getElementById('dropZone');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+document.getElementById('fileInput').addEventListener('change', e => { if(e.target.files[0]) setFile(e.target.files[0]); });
+
+function setFile(f) {
+  uploadedFile = f;
+  document.getElementById('fileName').textContent = f.name + ' (' + (f.size/1024).toFixed(1) + ' KB)';
+  document.getElementById('filePill').style.display = 'flex';
+  drop.style.display = 'none';
+  checkReady();
+}
+function removeFile() {
+  uploadedFile = null;
+  document.getElementById('filePill').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  drop.style.display = 'block';
+  checkReady();
+}
+
+function setStatus(t) { document.getElementById('statusText').textContent=t; document.getElementById('statusBar').style.display='flex'; }
+function hideStatus() { document.getElementById('statusBar').style.display='none'; }
+function showError(t) { const el=document.getElementById('errorBar'); el.textContent=t; el.style.display='block'; }
+function hideError() { document.getElementById('errorBar').style.display='none'; }
+
+async function runAnalysis() {
+  if (!selectedICP || !uploadedFile) return;
+  hideError();
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('analyzeBtn').disabled = true;
+  setStatus('Uploading and analyzing document…');
+
+  const fd = new FormData();
+  fd.append('file', uploadedFile);
+  fd.append('icp_id', selectedICP);
+  if (selectedICP === 'custom') fd.append('custom_icp', document.getElementById('customICPText').value);
+  const ctx = document.getElementById('ctxInput').value.trim();
+  if (ctx) fd.append('context', ctx);
+
+  try {
+    const res = await fetch('/analyze', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Server error');
+    hideStatus();
+    renderResults(data.result, data.icp_name);
+  } catch(e) {
+    hideStatus();
+    showError('Error: ' + e.message);
+  }
+  document.getElementById('analyzeBtn').disabled = false;
+}
+
+function sc(v) { return v>=75?'#639922':v>=50?'#BA7517':'#E24B4A'; }
+
+function renderResults(r, icpName) {
+  const fit = r.icp_fit_score||0;
+  const badgeCls = fit>=75?'badge-g':fit>=50?'badge-a':'badge-r';
+  const badgeLbl = fit>=75?'Good fit':fit>=50?'Partial fit':'Poor fit';
+
+  const scoresHtml = Object.entries(r.scores||{}).map(([k,v]) => {
+    const lbl = k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    return `<div class="score-row">
+      <span class="score-lbl">${lbl}</span>
+      <div class="bar-bg"><div class="bar-fill" style="width:${v}%;background:${sc(v)};"></div></div>
+      <span class="score-num" style="color:${sc(v)};">${v}</span>
+    </div>`;
+  }).join('');
+
+  const crit = (r.devil_advocate_critiques||[]).map(c=>`<div class="item-r">${c}</div>`).join('');
+  const sugg = (r.improvement_suggestions||[]).map(s=>`<div class="item-g">${s}</div>`).join('');
+  const ss = (r.screenshot_feedback||[]).map(s=>`<div class="item-b">${s}</div>`).join('');
+
+  document.getElementById('results').innerHTML = `
+    <div class="verdict-card">
+      <div>
+        <span class="score-big">${fit}<span>/100</span></span>
+        <span class="badge ${badgeCls}">${badgeLbl}</span>
+        <span style="font-size:13px;color:var(--text-muted);margin-left:6px;">${icpName}</span>
+      </div>
+      <div class="verdict-text">"${r.overall_verdict}"</div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Dimension scores</div>
+      <div class="scores-grid">${scoresHtml}</div>
+    </div>
+
+    <div class="card">
+      <div class="section-head" style="color:var(--red);">Devil's advocate critiques</div>
+      ${crit}
+    </div>
+
+    <div class="card">
+      <div class="section-head" style="color:var(--green);">Improvement suggestions</div>
+      ${sugg}
+    </div>
+
+    <div class="card">
+      <div class="section-head" style="color:var(--blue);">Screenshot / visual feedback</div>
+      ${ss}
+    </div>
+
+    <div class="two-col">
+      <div class="summary-box" style="background:var(--green-light);color:#173404;">
+        <div class="lbl" style="color:var(--green);">Strongest aspect</div>
+        ${r.strongest_aspect}
+      </div>
+      <div class="summary-box" style="background:var(--red-light);color:#3d0f0f;">
+        <div class="lbl" style="color:var(--red);">Biggest risk</div>
+        ${r.biggest_risk}
+      </div>
+    </div>
+  `;
+}
+
+renderICPs();
+</script>
+</body>
+</html>
